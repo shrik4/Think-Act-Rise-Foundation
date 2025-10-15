@@ -1,0 +1,12 @@
+CAUSE LIST FOR: 15-10-2025
+==================================================
+
+COURT: Court1
+--------------------
+  SN: 1   | W.P.  123 /2024 | Ram vs. Shyam                  (PDF Available)
+  SN: 2   | C.A.  456 /2023 | ABC Corp vs. Govt              (No PDF)
+  SN: 10  | O.S.  999 /2024 | Case Target                    (PDF Available)
+
+COURT: Court2
+--------------------
+  SN: 5   | M.A.  101 /2024 | XYZ vs. PQR                    (PDF Available)

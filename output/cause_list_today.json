@@ -1,0 +1,38 @@
+{
+    "Court1": [
+        {
+            "sn": 1,
+            "case_type": "W.P.",
+            "case_no": "123",
+            "year": "2024",
+            "party": "Ram vs. Shyam",
+            "pdf_available": true
+        },
+        {
+            "sn": 2,
+            "case_type": "C.A.",
+            "case_no": "456",
+            "year": "2023",
+            "party": "ABC Corp vs. Govt",
+            "pdf_available": false
+        },
+        {
+            "sn": 10,
+            "case_type": "O.S.",
+            "case_no": "999",
+            "year": "2024",
+            "party": "Case Target",
+            "pdf_available": true
+        }
+    ],
+    "Court2": [
+        {
+            "sn": 5,
+            "case_type": "M.A.",
+            "case_no": "101",
+            "year": "2024",
+            "party": "XYZ vs. PQR",
+            "pdf_available": true
+        }
+    ]
+}
