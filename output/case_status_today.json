@@ -1,3 +1,6 @@
 {
-    "is_listed": false
+    "is_listed": true,
+    "court_name": "Court2",
+    "serial_number": 10,
+    "pdf_link_mock": "case_O.S._999.pdf"
 }

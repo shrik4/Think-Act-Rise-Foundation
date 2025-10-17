@@ -1,0 +1,10 @@
+/* Custom font */
+body { font-family: 'Inter', sans-serif; }
+/* Simple animation for loading state */
+.spinner {
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

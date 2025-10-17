@@ -3,6 +3,16 @@ import requests
 import json
 import os
 from datetime import datetime, timedelta
+from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask_cors import CORS
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+import os
+import time
+
+app = Flask(__name__, static_folder='.') # Serve static files from the current directory
+CORS(app)
 
 # --- MOCK DATA FOR DEMONSTRATION ---
 # In a real-world scenario, this data would come from POST requests to the eCourts server.
@@ -17,6 +27,40 @@ MOCK_CAUSE_LIST_DATA = {
     ]
 }
 
+
+
+MOCK_COURT_COMPLEXES = [
+    {"id": "1", "name": "District Court, Delhi"},
+    {"id": "2", "name": "High Court, Bombay"},
+    {"id": "3", "name": "Supreme Court of India"},
+    {"id": "4", "name": "District Court, Gurugram"},
+    {"id": "5", "name": "High Court, Punjab and Haryana"},
+    {"id": "6", "name": "District Court, Bengaluru"}
+]
+
+MOCK_JUDGES = [
+    {"id": "J1", "name": "Justice A.K. Sharma", "complex_id": "1"},
+    {"id": "J2", "name": "Justice B.N. Singh", "complex_id": "1"},
+    {"id": "J3", "name": "Justice C.V. Rao", "complex_id": "2"},
+    {"id": "J4", "name": "Justice D.E. Khan", "complex_id": "2"},
+    {"id": "J5", "name": "Justice F.G. Patel", "complex_id": "3"},
+    {"id": "J6", "name": "Justice H.I. Shah", "complex_id": "3"},
+    {"id": "J7", "name": "Justice G.H. Singh", "complex_id": "4"},
+    {"id": "J8", "name": "Justice I.J. Kumar", "complex_id": "4"},
+    {"id": "J9", "name": "Justice K.L. Devi", "complex_id": "5"},
+    {"id": "J10", "name": "Justice M.N. Prasad", "complex_id": "5"},
+    {"id": "J11", "name": "Justice O.P. Gupta", "complex_id": "6"},
+    {"id": "J12", "name": "Justice Q.R. Sharma", "complex_id": "6"}
+]
+
+def _mock_fetch_court_complexes():
+    """
+    Mocks the fetching of court complexes.
+    """
+    print("\n[MOCK] Fetching court complexes...")
+    time.sleep(0.5) # Simulate network delay
+    return MOCK_COURT_COMPLEXES
+
 # --- CONFIGURATION ---
 OUTPUT_DIR = "output"
 # NOTE: The actual eCourts URL would be used here to send POST requests
@@ -27,14 +71,38 @@ ECOURTS_BASE_URL = "https://services.ecourts.gov.in/ecourtindia_v6/"
 def _mock_fetch_cause_list(date_str: str) -> dict:
     """
     Mocks the fetching of the cause list for a given date.
-    
-    In a real implementation, this would involve:
-    1. Making an initial GET request to get session/view state.
-    2. Solving a CAPTCHA.
-    3. Constructing a complex POST payload with state, CAPTCHA solution, and date.
-    4. Parsing the resulting HTML table (using BeautifulSoup) or JSON response.
     """
-    print(f"\n[MOCK] Attempting to fetch cause list for {date_str} from {ECOURTS_BASE_URL}...")
+    print(f"\n[MOCK] Fetching cause list for date: {date_str}...")
+    # Simulate some delay
+    time.sleep(1)
+
+    # Return mock data for demonstration
+    return {
+        "case_list": [
+            {
+                "case_no": "C.C. No. 123/2025",
+                "parties": "State vs. John Doe",
+                "judge": "Justice A.K. Sharma",
+                "stage": "Evidence",
+                "next_hearing": "2025-10-15"
+            },
+            {
+                "case_no": "S.T. No. 456/2025",
+                "parties": "Jane Smith vs. David Lee",
+                "judge": "Justice A.K. Sharma",
+                "stage": "Arguments",
+                "next_hearing": "2025-10-20"
+            },
+            {
+                "case_no": "M.A. No. 789/2025",
+                "parties": "Petitioner vs. Respondent",
+                "judge": "Justice A.K. Sharma",
+                "stage": "Orders",
+                "next_hearing": "2025-10-25"
+            }
+        ],
+        "summary": f"Mock cause list for {date_str} with 3 cases."
+    }
     
     # Simulate an empty list for tomorrow, and a populated list for today
     if datetime.strptime(date_str, "%d-%m-%Y").date() == datetime.now().date():
@@ -159,24 +227,48 @@ def download_cause_list(date_check: str):
     # Save results
     save_results(final_text_output, cause_list_data, f"cause_list_{date_check}")
     
-def download_case_pdf(case_details: dict, mock_link: str):
+def download_case_pdf(cause_list_data: list):
     """
-    Mocks the download of a case PDF.
-    
-    In a real implementation, this would use a direct URL and authentication cookies.
+    Generates a PDF for a cause list.
     """
-    case_id = case_details.get('cnr') or f"{case_details.get('case_type')}_{case_details.get('case_no')}"
-    pdf_filename = f"{case_id}_document.pdf"
+    pdf_filename = f"cause_list_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
     
-    print(f"\n[MOCK] Attempting to download PDF for case {case_id}...")
+    print(f"\n[MOCK] Attempting to generate PDF for cause list...")
     
     try:
-        # Simulate a successful file download
-        with open(os.path.join(OUTPUT_DIR, pdf_filename), 'w') as f:
-            f.write(f"MOCK PDF Content for {case_id} fetched from {mock_link}")
-        print(f"   PDF successfully downloaded and saved as: {OUTPUT_DIR}/{pdf_filename}")
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        y_position = 750
+
+        if not cause_list_data:
+            p.drawString(100, y_position, "No cause list data available.")
+            y_position -= 20
+        else:
+            for case in cause_list_data:
+                for key, value in case.items():
+                    p.drawString(100, y_position, f"{key.replace('_', ' ').title()}: {value}")
+                    y_position -= 15
+                y_position -= 10  # Add a small gap between cases
+                if y_position < 50:  # Add new page if content goes too low
+                    p.showPage()
+                    y_position = 750
+
+        p.showPage()
+        p.save()
+        
+        buffer.seek(0)
+        
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
+            
+        with open(os.path.join(OUTPUT_DIR, pdf_filename), 'wb') as f:
+            f.write(buffer.getvalue())
+            
+        print(f"   PDF successfully generated and saved as: {OUTPUT_DIR}/{pdf_filename}")
+        return os.path.join(OUTPUT_DIR, pdf_filename)
     except Exception as e:
-        print(f"   Error downloading/saving PDF: {e}")
+        print(f"   Error generating/saving PDF: {e}")
+        return None
 
 
 # --- FILE SAVING UTILITY ---
@@ -207,57 +299,62 @@ def save_results(text_content: str, json_content: dict, filename_base: str):
 
 # --- MAIN CLI INTERFACE ---
 
-def main():
-    """Handles all command-line arguments and dispatches tasks."""
-    parser = argparse.ArgumentParser(
-        description="eCourts Case Listing Scraper (Mocked for demonstration).",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
 
-    # --- Case Identification Group ---
-    case_group = parser.add_argument_group('Case Identification (Required for listing check)')
-    case_group.add_argument('--cnr', type=str, help="Case Number Record (CNR) of the case.")
-    case_group.add_argument('--type', type=str, help="Case Type (e.g., 'W.P.', 'C.A.').")
-    case_group.add_argument('--num', type=str, help="Case Number (e.g., '123').")
-    case_group.add_argument('--year', type=str, help="Case Year (e.g., '2024').")
 
-    # --- Action Group (Mutually Exclusive) ---
-    action_group = parser.add_argument_group('Actions (Choose one or more)')
-    action_group.add_argument('--check', action='store_true', help="Check case listing (requires case identification).")
-    action_group.add_argument('--causelist', action='store_true', help="Download today's cause list.")
+@app.route('/api/court_complexes')
+def get_court_complexes():
+    return jsonify(_mock_fetch_court_complexes())
 
-    # --- Date Group ---
-    date_group = parser.add_mutually_exclusive_group()
-    date_group.add_argument('--today', action='store_true', default=True, help="Check listing/cause list for TODAY (default).")
-    date_group.add_argument('--tomorrow', action='store_true', help="Check listing/cause list for TOMORROW.")
+@app.route('/api/judges')
+def get_judges():
+    complex_id = request.args.get('complex_id')
+    if complex_id:
+        filtered_judges = [judge for judge in MOCK_JUDGES if judge['complex_id'] == complex_id]
+        return jsonify(filtered_judges)
+    return jsonify(MOCK_JUDGES)
 
-    args = parser.parse_args()
+@app.route('/api/cause_list', methods=['POST'])
+def api_cause_list():
+    data = request.get_json()
+    date_check = data.get('date_check', 'today')
+    cause_list_data = _mock_fetch_cause_list(date_check)
+    return jsonify(cause_list_data)
 
-    # Determine target date
-    date_check = 'tomorrow' if args.tomorrow else 'today'
-    
-    # 1. Handle Cause List Download
-    if args.causelist:
-        download_cause_list(date_check)
+@app.route('/api/case_status', methods=['POST'])
+def api_case_status():
+    data = request.get_json()
+    case_details = data.get('case_details')
+    date_check = data.get('date_check', 'today')
+    result = _mock_fetch_case_status(case_details, date_check)
+    return jsonify(result)
 
-    # 2. Handle Case Listing Check
-    if args.check:
-        case_details = {}
-        if args.cnr:
-            case_details['cnr'] = args.cnr
-        elif args.type and args.num and args.year:
-            case_details['case_type'] = args.type
-            case_details['case_no'] = args.num
-            case_details['year'] = args.year
-        
-        if case_details:
-            check_case_listing(case_details, date_check)
-        else:
-            print("\nError: To use --check, you must provide either --cnr OR all three: --type, --num, and --year.")
-            parser.print_help()
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
 
-    if not (args.causelist or args.check):
-        print("\nNote: No action specified (--check or --causelist). Use --help for usage instructions.")
-        
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('.', path)
+
+@app.route('/api/download_pdf', methods=['POST'])
+def api_download_pdf():
+    data = request.get_json()
+    judge_name = data.get('judge_name')
+    complex_name = data.get('complex_name')
+    date = data.get('date')
+
+    # For demonstration, we'll use a mock case_details and mock_link
+    date = data.get('date')
+
+    # Fetch the mock cause list data
+    cause_list_response = _mock_fetch_cause_list(date)
+    cause_list_data = cause_list_response.get("case_list", [])
+
+    pdf_path = download_case_pdf(cause_list_data)
+    if pdf_path:
+        return send_file(pdf_path, as_attachment=True, download_name=os.path.basename(pdf_path))
+    else:
+        return jsonify({"message": "Failed to generate PDF"}), 500
+
 if __name__ == "__main__":
-    main()
+    app.run(debug=True, port=5000)
